@@ -1,4 +1,4 @@
-# Point-LIO — Mathematical & Algorithmic Documentation
+# Point-LIO — Documentation
 
 📄 **Paper**  
 **Point-LIO: Robust High-Bandwidth LiDAR–Inertial Odometry**  
