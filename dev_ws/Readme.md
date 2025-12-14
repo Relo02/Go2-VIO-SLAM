@@ -31,17 +31,15 @@ This enables:
 
 Extrinsics:
 $$
-\[
 \mathbf{p}_L^I,\; \mathbf{R}_L^I
-\]
 $$
 ---
 
 ## 3. State Vector Definition
 
-The system state at time \( t \) is:
+The system state at time $t$ is:
 
-\[
+$$
 \mathbf{x}(t) =
 \begin{bmatrix}
 \mathbf{p}(t) \\
@@ -50,17 +48,17 @@ The system state at time \( t \) is:
 \mathbf{b}_g(t) \\
 \mathbf{b}_a(t)
 \end{bmatrix}
-\]
+$$
 
 Where:
 
 | Symbol | Dimension | Meaning |
 |-----|---------|--------|
-| \( \mathbf{p} \) | \( \mathbb{R}^3 \) | Position |
-| \( \mathbf{v} \) | \( \mathbb{R}^3 \) | Velocity |
-| \( \mathbf{q} \) | \( \mathbb{H} \) | Orientation (quaternion) |
-| \( \mathbf{b}_g \) | \( \mathbb{R}^3 \) | Gyro bias |
-| \( \mathbf{b}_a \) | \( \mathbb{R}^3 \) | Acc bias |
+| $\mathbf{p}$ | $\mathbb{R}^3$ | Position |
+| $\mathbf{v}$ | $\mathbb{R}^3$ | Velocity |
+| $\mathbf{q}$ | $\mathbb{H}$ | Orientation (quaternion) |
+| $\mathbf{b}_g$ | $\mathbb{R}^3$ | Gyro bias |
+| $\mathbf{b}_a$ | $\mathbb{R}^3$ | Acc bias |
 
 Optional:
 - LiDAR–IMU extrinsics
@@ -72,35 +70,35 @@ Optional:
 
 ### 4.1 Kinematics
 
-\[
+$$
 \dot{\mathbf{p}} = \mathbf{v}
-\]
+$$
 
-\[
+$$
 \dot{\mathbf{v}} =
 \mathbf{R}(\mathbf{q})
 (\mathbf{a}_m - \mathbf{b}_a - \mathbf{n}_a)
 - \mathbf{g}
-\]
+$$
 
-\[
+$$
 \dot{\mathbf{q}} =
 \frac{1}{2}
 \boldsymbol{\Omega}(\boldsymbol{\omega}_m - \mathbf{b}_g - \mathbf{n}_g)
 \mathbf{q}
-\]
+$$
 
-\[
+$$
 \dot{\mathbf{b}}_g = \mathbf{n}_{bg},
 \quad
 \dot{\mathbf{b}}_a = \mathbf{n}_{ba}
-\]
+$$
 
 Where:
-- \( \boldsymbol{\omega}_m \): gyro measurement
-- \( \mathbf{a}_m \): accelerometer measurement
-- \( \mathbf{n}_* \): white Gaussian noise
-- \( \mathbf{g} \): gravity
+- $\boldsymbol{\omega}_m$: gyro measurement
+- $\mathbf{a}_m$: accelerometer measurement
+- $\mathbf{n}_*$: white Gaussian noise
+- $\mathbf{g}$: gravity
 
 ---
 
@@ -108,7 +106,7 @@ Where:
 
 Instead of treating IMU purely as input, Point-LIO models IMU readings as **stochastic system outputs**:
 
-\[
+$$
 \mathbf{y}_{imu} =
 \begin{bmatrix}
 \boldsymbol{\omega}_m \\
@@ -116,7 +114,7 @@ Instead of treating IMU purely as input, Point-LIO models IMU readings as **stoc
 \end{bmatrix}
 =
 h_{imu}(\mathbf{x}) + \mathbf{n}
-\]
+$$
 
 This formulation:
 - Preserves observability
@@ -127,14 +125,14 @@ This formulation:
 
 ## 6. LiDAR Point Time Encoding
 
-Each LiDAR point \( i \) has timestamp:
+Each LiDAR point $i$ has timestamp:
 
-\[
+$$
 t_i = t_{scan} + \Delta t_i
-\]
+$$
 
 Where:
-- \( \Delta t_i \) is encoded in the point (e.g., intensity / curvature)
+- $\Delta t_i$ is encoded in the point (e.g., intensity / curvature)
 
 This enables **true continuous-time fusion**.
 
@@ -142,18 +140,18 @@ This enables **true continuous-time fusion**.
 
 ## 7. Point-Wise State Propagation
 
-For each LiDAR point \( i \):
+For each LiDAR point $i$:
 
-1. **Propagate IMU** from \( t_{i-1} \to t_i \):
+1. **Propagate IMU** from $t_{i-1} \to t_i$:
 
-\[
+$$
 \mathbf{x}_{i|i-1} = f(\mathbf{x}_{i-1}, \mathbf{u}_{imu})
-\]
+$$
 
-\[
+$$
 \mathbf{P}_{i|i-1} =
 \mathbf{F}_i \mathbf{P}_{i-1} \mathbf{F}_i^T + \mathbf{Q}_i
-\]
+$$
 
 ---
 
@@ -161,45 +159,45 @@ For each LiDAR point \( i \):
 
 ### 8.1 Point Transformation
 
-\[
+$$
 \mathbf{p}_i^W =
 \mathbf{R}(\mathbf{q})
 (\mathbf{R}_L^I \mathbf{p}_i^L + \mathbf{p}_L^I)
 + \mathbf{p}
-\]
+$$
 
 ---
 
 ### 8.2 Point-to-Plane Residual
 
 Let:
-- \( \mathbf{p}_{map} \): closest surface point
-- \( \mathbf{n} \): surface normal
+- $\mathbf{p}_{map}$: closest surface point
+- $\mathbf{n}$: surface normal
 
 Residual:
 
-\[
+$$
 r_i =
 \mathbf{n}^T
 (\mathbf{p}_i^W - \mathbf{p}_{map})
-\]
+$$
 
 ---
 
 ## 9. Linearization (Jacobian)
 
-\[
+$$
 r_i \approx
 r_i(\hat{\mathbf{x}}) +
 \mathbf{H}_i \delta \mathbf{x}
-\]
+$$
 
 Where:
 
-\[
+$$
 \mathbf{H}_i =
 \frac{\partial r_i}{\partial \mathbf{x}}
-\]
+$$
 
 Includes derivatives w.r.t.:
 - position
@@ -212,42 +210,42 @@ Includes derivatives w.r.t.:
 
 ### 10.1 Kalman Gain
 
-\[
+$$
 \mathbf{K}_i =
 \mathbf{P}_{i|i-1} \mathbf{H}_i^T
 (\mathbf{H}_i \mathbf{P}_{i|i-1} \mathbf{H}_i^T + \mathbf{R})^{-1}
-\]
+$$
 
 ---
 
 ### 10.2 State Update
 
-\[
+$$
 \delta \mathbf{x}_i =
 \mathbf{K}_i r_i
-\]
+$$
 
-\[
+$$
 \mathbf{x}_i =
 \mathbf{x}_{i|i-1} \oplus \delta \mathbf{x}_i
-\]
+$$
 
 Quaternion update uses exponential map:
 
-\[
+$$
 \mathbf{q} \leftarrow
 \mathbf{q} \otimes \exp(\tfrac{1}{2}\delta \boldsymbol{\theta})
-\]
+$$
 
 ---
 
 ### 10.3 Covariance Update
 
-\[
+$$
 \mathbf{P}_i =
 (\mathbf{I} - \mathbf{K}_i \mathbf{H}_i)
 \mathbf{P}_{i|i-1}
-\]
+$$
 
 ---
 
