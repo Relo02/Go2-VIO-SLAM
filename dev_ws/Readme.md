@@ -1,4 +1,4 @@
-# Point-LIO — Technical Overview & Mathematical Foundations
+# Point-LIO — Technical Overview
 
 📄 **Based on:**  
 **Point-LIO: Robust High-Bandwidth LiDAR–Inertial Odometry**  
@@ -24,22 +24,17 @@ This README provides a **technical summary** of the paper, focusing on:
 ## 🧠 Core Contributions
 
 1. **Point-by-Point LiDAR Fusion**
-   - Each LiDAR point is fused at its exact timestamp.
-   - Eliminates intra-scan motion distortion.
-   - Enables ultra-high-rate odometry output (4–8 kHz).
+   - Each LiDAR point is fused at its exact timestamp
+   - Eliminates intra-scan motion distortion
+   - Enables ultra-high-rate odometry output (4–8 kHz)
 
 2. **Stochastic Process–Augmented IMU Model**
-   - IMU measurements are modeled as *outputs* of a stochastic process.
-   - Improves robustness under IMU saturation and aggressive maneuvers.
+   - IMU measurements are modeled as *outputs* of a stochastic process
+   - Improves robustness under IMU saturation and aggressive maneuvers
 
 3. **Iterated EKF with Continuous Updates**
-   - EKF prediction and update are interleaved for each LiDAR point.
-   - No batch scan registration is required.
-
----
-
-## 🧩 System Pipeline
-
+   - EKF prediction and update are interleaved for each LiDAR point
+   - No batch scan registration is required
 
 ---
 
@@ -47,7 +42,7 @@ This README provides a **technical summary** of the paper, focusing on:
 
 The system state is defined as:
 
-\[
+$$
 \mathbf{x} =
 \begin{bmatrix}
 \mathbf{p} \\
@@ -56,17 +51,17 @@ The system state is defined as:
 \mathbf{b}_g \\
 \mathbf{b}_a
 \end{bmatrix}
-\]
+$$
 
 Where:
 
 | Symbol | Meaning |
 |------|--------|
-| \(\mathbf{p} \in \mathbb{R}^3\) | Position |
-| \(\mathbf{v} \in \mathbb{R}^3\) | Velocity |
-| \(\mathbf{q} \in \mathbb{H}\) | Orientation (quaternion) |
-| \(\mathbf{b}_g \in \mathbb{R}^3\) | Gyroscope bias |
-| \(\mathbf{b}_a \in \mathbb{R}^3\) | Accelerometer bias |
+| $\mathbf{p} \in \mathbb{R}^3$ | Position |
+| $\mathbf{v} \in \mathbb{R}^3$ | Velocity |
+| $\mathbf{q} \in \mathbb{H}$ | Orientation (quaternion) |
+| $\mathbf{b}_g \in \mathbb{R}^3$ | Gyroscope bias |
+| $\mathbf{b}_a \in \mathbb{R}^3$ | Accelerometer bias |
 
 Optionally, LiDAR–IMU extrinsics can be appended to the state.
 
@@ -76,31 +71,31 @@ Optionally, LiDAR–IMU extrinsics can be appended to the state.
 
 ### Position and Velocity
 
-\[
+$$
 \dot{\mathbf{p}} = \mathbf{v}
-\]
+$$
 
-\[
+$$
 \dot{\mathbf{v}} =
 \mathbf{R}(\mathbf{q})
 (\mathbf{a}_m - \mathbf{b}_a - \mathbf{n}_a)
 - \mathbf{g}
-\]
+$$
 
 ### Orientation (Quaternion Kinematics)
 
-\[
+$$
 \dot{\mathbf{q}} =
 \frac{1}{2}
-\Omega(\boldsymbol{\omega}_m - \mathbf{b}_g - \mathbf{n}_g)
+\boldsymbol{\Omega}(\boldsymbol{\omega}_m - \mathbf{b}_g - \mathbf{n}_g)
 \mathbf{q}
-\]
+$$
 
 Where:
-- \(\mathbf{a}_m, \boldsymbol{\omega}_m\): IMU measurements
-- \(\mathbf{n}_a, \mathbf{n}_g\): IMU noise
-- \(\mathbf{g}\): gravity vector
-- \(\Omega(\cdot)\): quaternion multiplication matrix
+- $\mathbf{a}_m$, $\boldsymbol{\omega}_m$ are IMU measurements
+- $\mathbf{n}_a$, $\mathbf{n}_g$ are IMU noise
+- $\mathbf{g}$ is gravity
+- $\boldsymbol{\Omega}(\cdot)$ is the quaternion multiplication matrix
 
 ---
 
@@ -109,9 +104,9 @@ Where:
 **Key idea:**  
 IMU measurements are treated as **system outputs** rather than purely noisy inputs.
 
-\[
+$$
 \mathbf{y}_{imu} = h(\mathbf{x}) + \mathbf{n}
-\]
+$$
 
 This formulation:
 - Improves observability
@@ -126,24 +121,24 @@ Each LiDAR point is processed independently.
 
 ### Point Transformation
 
-\[
+$$
 \mathbf{p}_i^{world} =
 \mathbf{R}(\mathbf{q})
 (\mathbf{p}_i^{lidar} + \mathbf{t}_{L}^{I})
 + \mathbf{p}
-\]
+$$
 
 ### Residual (Point-to-Plane)
 
-\[
+$$
 r_i =
 \mathbf{n}^T
 (\mathbf{p}_i^{world} - \mathbf{p}_{map})
-\]
+$$
 
 Where:
-- \(\mathbf{n}\): local surface normal
-- \(\mathbf{p}_{map}\): closest map point or plane projection
+- $\mathbf{n}$ is the local surface normal
+- $\mathbf{p}_{map}$ is the closest map point or plane projection
 
 ---
 
@@ -151,25 +146,25 @@ Where:
 
 ### Kalman Gain
 
-\[
+$$
 \mathbf{K}_i =
 \mathbf{P}^- \mathbf{H}_i^T
 (\mathbf{H}_i \mathbf{P}^- \mathbf{H}_i^T + \mathbf{R})^{-1}
-\]
+$$
 
 ### State Update
 
-\[
+$$
 \mathbf{x}^+ =
 \mathbf{x}^- + \mathbf{K}_i r_i
-\]
+$$
 
 ### Covariance Update
 
-\[
+$$
 \mathbf{P}^+ =
 (\mathbf{I} - \mathbf{K}_i \mathbf{H}_i)\mathbf{P}^-
-\]
+$$
 
 This update is executed **for every LiDAR point**, not per scan.
 
@@ -177,9 +172,9 @@ This update is executed **for every LiDAR point**, not per scan.
 
 ## 🗺 Incremental Mapping
 
-- A KD-tree stores map points.
-- Only new, non-redundant points are added.
-- A sliding local map window is maintained to bound computation.
+- A KD-tree stores map points
+- Only new, non-redundant points are added
+- A sliding local map window is maintained to bound computation
 
 ---
 
@@ -210,3 +205,4 @@ This update is executed **for every LiDAR point**, not per scan.
 - Apply **iterated EKF updates**
 - Maintain a **local incremental map**
 - Treat IMU as a **stochastic process output**
+*
