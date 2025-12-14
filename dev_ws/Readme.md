@@ -1,76 +1,80 @@
-# Point-LIO — Documentation
+# Point-LIO — Technical Overview & Mathematical Foundations
 
-📄 **Paper**  
+📄 **Based on:**  
 **Point-LIO: Robust High-Bandwidth LiDAR–Inertial Odometry**  
 Advanced Intelligent Systems, 2023  
-DOI: 10.1002/aisy.202200459  
+DOI: 10.1002/aisy.202200459
 
 ---
 
-## 1. Overview
+## 📌 Introduction
 
-**Point-LIO** is a **tightly coupled LiDAR–IMU odometry** system that performs **continuous-time, point-by-point sensor fusion** using an **Iterated Extended Kalman Filter (IEKF)**.
+**Point-LIO** is a tightly coupled **LiDAR–Inertial Odometry (LIO)** framework designed for **high-bandwidth, low-latency, and aggressive motion scenarios**.  
+Unlike traditional frame-based LiDAR odometry systems, Point-LIO performs **point-by-point sensor fusion**, enabling odometry outputs at **kHz-level frequency**.
 
-### Key Idea
-> Instead of processing LiDAR scans as discrete frames, **each LiDAR point is fused at its exact timestamp**, interleaving IMU propagation and LiDAR updates.
-
-This enables:
-- kHz-level odometry
-- zero motion distortion
-- robustness under aggressive motion and IMU saturation
+This README provides a **technical summary** of the paper, focusing on:
+- System architecture
+- State formulation
+- Continuous-time IMU propagation
+- Point-wise LiDAR update
+- Key mathematical models required for implementation
 
 ---
 
-## 2. Coordinate Frames
+## 🧠 Core Contributions
 
-| Frame | Description |
-|-----|------------|
-| **W** | World frame |
-| **I** | IMU body frame |
-| **L** | LiDAR frame |
+1. **Point-by-Point LiDAR Fusion**
+   - Each LiDAR point is fused at its exact timestamp.
+   - Eliminates intra-scan motion distortion.
+   - Enables ultra-high-rate odometry output (4–8 kHz).
 
-Extrinsics:
-$$
+2. **Stochastic Process–Augmented IMU Model**
+   - IMU measurements are modeled as *outputs* of a stochastic process.
+   - Improves robustness under IMU saturation and aggressive maneuvers.
+
+3. **Iterated EKF with Continuous Updates**
+   - EKF prediction and update are interleaved for each LiDAR point.
+   - No batch scan registration is required.
+
+---
+
+## 🧩 System Pipeline
+
+
+---
+
+## 📐 State Vector Definition
+
+The system state is defined as:
+
 \[
-\mathbf{p}_L^I,\; \mathbf{R}_L^I
-\]
-$$
----
-
-## 3. State Vector Definition
-
-The system state at time \( t \) is:
-
-\[
-\mathbf{x}(t) =
+\mathbf{x} =
 \begin{bmatrix}
-\mathbf{p}(t) \\
-\mathbf{v}(t) \\
-\mathbf{q}(t) \\
-\mathbf{b}_g(t) \\
-\mathbf{b}_a(t)
+\mathbf{p} \\
+\mathbf{v} \\
+\mathbf{q} \\
+\mathbf{b}_g \\
+\mathbf{b}_a
 \end{bmatrix}
 \]
 
 Where:
 
-| Symbol | Dimension | Meaning |
-|-----|---------|--------|
-| \( \mathbf{p} \) | \( \mathbb{R}^3 \) | Position |
-| \( \mathbf{v} \) | \( \mathbb{R}^3 \) | Velocity |
-| \( \mathbf{q} \) | \( \mathbb{H} \) | Orientation (quaternion) |
-| \( \mathbf{b}_g \) | \( \mathbb{R}^3 \) | Gyro bias |
-| \( \mathbf{b}_a \) | \( \mathbb{R}^3 \) | Acc bias |
+| Symbol | Meaning |
+|------|--------|
+| \(\mathbf{p} \in \mathbb{R}^3\) | Position |
+| \(\mathbf{v} \in \mathbb{R}^3\) | Velocity |
+| \(\mathbf{q} \in \mathbb{H}\) | Orientation (quaternion) |
+| \(\mathbf{b}_g \in \mathbb{R}^3\) | Gyroscope bias |
+| \(\mathbf{b}_a \in \mathbb{R}^3\) | Accelerometer bias |
 
-Optional:
-- LiDAR–IMU extrinsics
-- Gravity vector
+Optionally, LiDAR–IMU extrinsics can be appended to the state.
 
 ---
 
-## 4. Continuous-Time IMU Process Model
+## 🔄 Continuous-Time IMU Motion Model
 
-### 4.1 Kinematics
+### Position and Velocity
 
 \[
 \dot{\mathbf{p}} = \mathbf{v}
@@ -83,186 +87,126 @@ Optional:
 - \mathbf{g}
 \]
 
+### Orientation (Quaternion Kinematics)
+
 \[
 \dot{\mathbf{q}} =
 \frac{1}{2}
-\boldsymbol{\Omega}(\boldsymbol{\omega}_m - \mathbf{b}_g - \mathbf{n}_g)
+\Omega(\boldsymbol{\omega}_m - \mathbf{b}_g - \mathbf{n}_g)
 \mathbf{q}
 \]
 
-\[
-\dot{\mathbf{b}}_g = \mathbf{n}_{bg},
-\quad
-\dot{\mathbf{b}}_a = \mathbf{n}_{ba}
-\]
-
 Where:
-- \( \boldsymbol{\omega}_m \): gyro measurement
-- \( \mathbf{a}_m \): accelerometer measurement
-- \( \mathbf{n}_* \): white Gaussian noise
-- \( \mathbf{g} \): gravity
+- \(\mathbf{a}_m, \boldsymbol{\omega}_m\): IMU measurements
+- \(\mathbf{n}_a, \mathbf{n}_g\): IMU noise
+- \(\mathbf{g}\): gravity vector
+- \(\Omega(\cdot)\): quaternion multiplication matrix
 
 ---
 
-## 5. Stochastic Process-Augmented IMU Model (Core Innovation)
+## 📊 Stochastic Process–Augmented IMU Model
 
-Instead of treating IMU purely as input, Point-LIO models IMU readings as **stochastic system outputs**:
+**Key idea:**  
+IMU measurements are treated as **system outputs** rather than purely noisy inputs.
 
 \[
-\mathbf{y}_{imu} =
-\begin{bmatrix}
-\boldsymbol{\omega}_m \\
-\mathbf{a}_m
-\end{bmatrix}
-=
-h_{imu}(\mathbf{x}) + \mathbf{n}
+\mathbf{y}_{imu} = h(\mathbf{x}) + \mathbf{n}
 \]
 
 This formulation:
-- Preserves observability
-- Maintains filter stability
-- Handles IMU saturation gracefully
+- Improves observability
+- Maintains filter stability under sensor saturation
+- Allows consistent covariance propagation
 
 ---
 
-## 6. LiDAR Point Time Encoding
+## 📍 Point-to-Plane LiDAR Measurement Model
 
-Each LiDAR point \( i \) has timestamp:
+Each LiDAR point is processed independently.
 
-\[
-t_i = t_{scan} + \Delta t_i
-\]
-
-Where:
-- \( \Delta t_i \) is encoded in the point (e.g., intensity / curvature)
-
-This enables **true continuous-time fusion**.
-
----
-
-## 7. Point-Wise State Propagation
-
-For each LiDAR point \( i \):
-
-1. **Propagate IMU** from \( t_{i-1} \to t_i \):
+### Point Transformation
 
 \[
-\mathbf{x}_{i|i-1} = f(\mathbf{x}_{i-1}, \mathbf{u}_{imu})
-\]
-
-\[
-\mathbf{P}_{i|i-1} =
-\mathbf{F}_i \mathbf{P}_{i-1} \mathbf{F}_i^T + \mathbf{Q}_i
-\]
-
----
-
-## 8. LiDAR Measurement Model
-
-### 8.1 Point Transformation
-
-\[
-\mathbf{p}_i^W =
+\mathbf{p}_i^{world} =
 \mathbf{R}(\mathbf{q})
-(\mathbf{R}_L^I \mathbf{p}_i^L + \mathbf{p}_L^I)
+(\mathbf{p}_i^{lidar} + \mathbf{t}_{L}^{I})
 + \mathbf{p}
 \]
 
----
-
-### 8.2 Point-to-Plane Residual
-
-Let:
-- \( \mathbf{p}_{map} \): closest surface point
-- \( \mathbf{n} \): surface normal
-
-Residual:
+### Residual (Point-to-Plane)
 
 \[
 r_i =
 \mathbf{n}^T
-(\mathbf{p}_i^W - \mathbf{p}_{map})
-\]
-
----
-
-## 9. Linearization (Jacobian)
-
-\[
-r_i \approx
-r_i(\hat{\mathbf{x}}) +
-\mathbf{H}_i \delta \mathbf{x}
+(\mathbf{p}_i^{world} - \mathbf{p}_{map})
 \]
 
 Where:
-
-\[
-\mathbf{H}_i =
-\frac{\partial r_i}{\partial \mathbf{x}}
-\]
-
-Includes derivatives w.r.t.:
-- position
-- orientation
-- (optionally) extrinsics
+- \(\mathbf{n}\): local surface normal
+- \(\mathbf{p}_{map}\): closest map point or plane projection
 
 ---
 
-## 10. Iterated EKF Update (Per Point)
+## 🔁 EKF Update (Per LiDAR Point)
 
-### 10.1 Kalman Gain
+### Kalman Gain
 
 \[
 \mathbf{K}_i =
-\mathbf{P}_{i|i-1} \mathbf{H}_i^T
-(\mathbf{H}_i \mathbf{P}_{i|i-1} \mathbf{H}_i^T + \mathbf{R})^{-1}
+\mathbf{P}^- \mathbf{H}_i^T
+(\mathbf{H}_i \mathbf{P}^- \mathbf{H}_i^T + \mathbf{R})^{-1}
 \]
+
+### State Update
+
+\[
+\mathbf{x}^+ =
+\mathbf{x}^- + \mathbf{K}_i r_i
+\]
+
+### Covariance Update
+
+\[
+\mathbf{P}^+ =
+(\mathbf{I} - \mathbf{K}_i \mathbf{H}_i)\mathbf{P}^-
+\]
+
+This update is executed **for every LiDAR point**, not per scan.
 
 ---
 
-### 10.2 State Update
+## 🗺 Incremental Mapping
 
-\[
-\delta \mathbf{x}_i =
-\mathbf{K}_i r_i
-\]
-
-\[
-\mathbf{x}_i =
-\mathbf{x}_{i|i-1} \oplus \delta \mathbf{x}_i
-\]
-
-Quaternion update uses exponential map:
-
-\[
-\mathbf{q} \leftarrow
-\mathbf{q} \otimes \exp(\tfrac{1}{2}\delta \boldsymbol{\theta})
-\]
+- A KD-tree stores map points.
+- Only new, non-redundant points are added.
+- A sliding local map window is maintained to bound computation.
 
 ---
 
-### 10.3 Covariance Update
+## ⚡ Advantages Over Frame-Based LIO
 
-\[
-\mathbf{P}_i =
-(\mathbf{I} - \mathbf{K}_i \mathbf{H}_i)
-\mathbf{P}_{i|i-1}
-\]
-
----
-
-## 11. Incremental Mapping
-
-After updating state:
-
-1. Transform downsampled points to world
-2. Insert into KD-tree map
-3. Maintain a **sliding local map window**
-
-This ensures:
-- bounded memory
-- fast nearest-neighbor search
+| Feature | Frame-Based LIO | Point-LIO |
+|------|---------------|-----------|
+| Motion distortion | Post-correction | Eliminated |
+| Update frequency | 10–100 Hz | 4–8 kHz |
+| Latency | High | Very low |
+| Aggressive motion | Fragile | Robust |
 
 ---
 
-## 12. Full Algorithm Summary
+## 🧪 Experimental Highlights (from the paper)
+
+- Odometry output: **kHz-level**
+- Angular velocity tolerance: **~75 rad/s**
+- Robust to IMU saturation
+- Real-time capable on embedded hardware
+
+---
+
+## 📌 Key Takeaways for Developers
+
+- Fuse **each LiDAR point at its timestamp**
+- Use **continuous-time IMU propagation**
+- Apply **iterated EKF updates**
+- Maintain a **local incremental map**
+- Treat IMU as a **stochastic process output**
