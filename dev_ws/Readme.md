@@ -30,10 +30,11 @@ This enables:
 | **L** | LiDAR frame |
 
 Extrinsics:
+$$
 \[
 \mathbf{p}_L^I,\; \mathbf{R}_L^I
 \]
-
+$$
 ---
 
 ## 3. State Vector Definition
